@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class InsertCommand extends StressCommand {
 
 //    private static final String KEY_FORMAT = "%010d";
+
     private static final String KEY_FORMAT = "%010d_%s";
 
     private static Logger log = LoggerFactory.getLogger(InsertCommand.class);
@@ -36,6 +37,7 @@ public class InsertCommand extends StressCommand {
         log.info("StartKey: {} for thread {}", startKey, Thread.currentThread().getId());
 
         long cassandraTime = 0;
+        String keyRandomPart = RandomStringUtils.random(keyWidth);
 
         while (rows < commandArgs.getKeysPerThread()) {
             if ( log.isDebugEnabled() ) {
@@ -43,7 +45,7 @@ public class InsertCommand extends StressCommand {
             }
             int insertsCount = 0;
             for (int j = 0; j < commandArgs.batchSize; j++) {
-                key = String.format(KEY_FORMAT, rows+startKey, RandomStringUtils.random(keyWidth));
+                key = String.format(KEY_FORMAT, rows+startKey, keyRandomPart);
                 for (int j2 = 0; j2 < commandArgs.columnCount; j2++) {
                     mutator.addInsertion(key, commandArgs.workingColumnFamily, HFactory.createStringColumn(String.format(COLUMN_NAME_FORMAT, j2),
                             String.format(COLUMN_VAL_FORMAT, j2, RandomStringUtils.random(colWidth))));

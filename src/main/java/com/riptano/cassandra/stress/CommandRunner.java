@@ -76,12 +76,12 @@ public class CommandRunner {
         List<Long> times = future.get();
         long cassandraTime = 0;
         for (Long time : times) {
-            if(time != null) {
-                cassandraTime += time;
+            if(time != null && time > cassandraTime) {
+                cassandraTime = time;
             }
         }
 
-        log.info("Finished command run at {} total duration: {} seconds, cassandra time{}", new Object[]{new Date(), (System.currentTimeMillis()-currentTime)/1000, cassandraTime});
+        log.info("Finished command run at {} total duration: {} seconds, cassandra time: {}", new Object[]{new Date(), (System.currentTimeMillis()-currentTime)/1000, cassandraTime});
 
         exec.shutdown();
         
