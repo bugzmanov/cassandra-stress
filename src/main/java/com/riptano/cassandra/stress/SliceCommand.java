@@ -27,7 +27,7 @@ public class SliceCommand extends StressCommand {
     }
 
     @Override
-    public Void call() throws Exception {
+    public Long call() throws Exception {
         int rows = 0;
         Random random = new Random();
         sliceQuery.setColumnFamily(commandArgs.workingColumnFamily);

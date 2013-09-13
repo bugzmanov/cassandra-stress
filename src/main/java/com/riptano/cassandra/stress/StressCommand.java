@@ -8,7 +8,7 @@ import org.apache.cassandra.utils.LatencyTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class StressCommand implements Callable<Void> {
+public abstract class StressCommand implements Callable<Long> {
 
     private static Logger log = LoggerFactory.getLogger(StressCommand.class);
     

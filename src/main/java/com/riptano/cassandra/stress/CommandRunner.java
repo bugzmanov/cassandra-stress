@@ -47,17 +47,17 @@ public class CommandRunner {
         long currentTime = System.currentTimeMillis();
         AtomicLong total = new AtomicLong();
         doneSignal = new CountDownLatch(commandArgs.threads);
-        List<ListenableFuture<Void>> futures = new ArrayList<ListenableFuture<Void>>(commandArgs.threads);
+        List<ListenableFuture<Long>> futures = new ArrayList<ListenableFuture<Long>>(commandArgs.threads);
 
         long submitTime = System.currentTimeMillis();
         for (int i = 0; i < commandArgs.threads; i++) {
-            ListenableFuture<Void> submit = exec.submit(getCommandInstance(total, i * commandArgs.getKeysPerThread(), commandArgs, this));
+            ListenableFuture<Long> submit = exec.submit(getCommandInstance(total, i * commandArgs.getKeysPerThread(), commandArgs, this));
             futures.add(submit);
         }
 
         log.info("Submitted {} tasks", commandArgs.threads);
 
-        ListenableFuture<List<Void>> future = Futures.allAsList(futures);
+        ListenableFuture<List<Long>> future = Futures.allAsList(futures);
 
         while(!future.isDone()) {
             long time = System.currentTimeMillis();
@@ -73,8 +73,15 @@ public class CommandRunner {
             }
         }
 
+        List<Long> times = future.get();
+        long cassandraTime = 0;
+        for (Long time : times) {
+            if(time != null) {
+                cassandraTime += time;
+            }
+        }
 
-        log.info("Finished command run at {} total duration: {} seconds", new Date(), (System.currentTimeMillis()-currentTime)/1000);
+        log.info("Finished command run at {} total duration: {} seconds, cassandra time{}", new Object[]{new Date(), (System.currentTimeMillis()-currentTime)/1000, cassandraTime});
 
         exec.shutdown();
         

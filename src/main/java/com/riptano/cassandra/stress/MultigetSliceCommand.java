@@ -26,7 +26,7 @@ public class MultigetSliceCommand extends StressCommand {
     }
 
     @Override
-    public Void call() throws Exception {
+    public Long call() throws Exception {
         int rows = 0;
         multigetSliceQuery.setColumnFamily(commandArgs.workingColumnFamily);
         log.debug("Starting MultigetSliceCommand");

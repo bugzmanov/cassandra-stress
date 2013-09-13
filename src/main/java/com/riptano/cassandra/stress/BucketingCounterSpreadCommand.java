@@ -35,7 +35,7 @@ public class BucketingCounterSpreadCommand extends StressCommand {
   }
 
   @Override
-  public Void call() throws Exception {
+  public Long call() throws Exception {
     log.info("In call on counter insert");
     Mutator<String> counterMutator =
       HFactory.createMutator(commandArgs.keyspace, StringSerializer.get(), new BatchSizeHint(500,2));

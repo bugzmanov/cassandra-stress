@@ -26,7 +26,7 @@ public class InsertCommand extends StressCommand {
     }
 
     @Override
-    public Void call() throws Exception {
+    public Long call() throws Exception {
 
         String key = null;
         // take into account string formatting for column width
@@ -34,6 +34,9 @@ public class InsertCommand extends StressCommand {
         int keyWidth = commandArgs.keyWidth - 9 <= 0 ? 7 : commandArgs.keyWidth -9;
         int rows = 0;
         log.info("StartKey: {} for thread {}", startKey, Thread.currentThread().getId());
+
+        long cassandraTime = 0;
+
         while (rows < commandArgs.getKeysPerThread()) {
             if ( log.isDebugEnabled() ) {
                 log.debug("rows at: {} for thread {}", rows, Thread.currentThread().getId());
@@ -54,7 +57,10 @@ public class InsertCommand extends StressCommand {
                     break;
                 }
             }
+            long start = System.currentTimeMillis();
             executeMutator(mutator,rows);
+            cassandraTime += (System.currentTimeMillis() - start);
+
             total.addAndGet(insertsCount);
         }
         commandRunner.doneSignal.countDown();
@@ -66,7 +72,7 @@ public class InsertCommand extends StressCommand {
         
         
         log.info("Executed chunk of {}. Latch now at {}", commandArgs.getKeysPerThread(), commandRunner.doneSignal.getCount());
-        return null;
+        return cassandraTime;
     }
 
 

@@ -23,7 +23,7 @@ public class RangeSliceCommand extends StressCommand {
     }
 
     @Override
-    public Void call() throws Exception {
+    public Long call() throws Exception {
         int rows = 0;
         rangeSlicesQuery.setColumnFamily(commandArgs.workingColumnFamily);
         log.debug("Starting SliceCommand");

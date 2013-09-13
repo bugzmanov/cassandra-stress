@@ -44,7 +44,7 @@ public class VerifyLastInsertCommand extends StressCommand {
     }
 
     @Override
-    public Void call() throws Exception {
+    public Long call() throws Exception {
       log.debug("Starting VerifyLastInsertCommand");
       String key = "test";
       sliceQuery.setColumnFamily(commandArgs.workingColumnFamily);
