@@ -11,6 +11,7 @@ import me.prettyprint.hector.api.HConsistencyLevel;
 import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
 import me.prettyprint.hector.api.ddl.ComparatorType;
 import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
+import me.prettyprint.hector.api.exceptions.HectorException;
 import me.prettyprint.hector.api.factory.HFactory;
 
 import org.apache.commons.cli.CommandLine;
@@ -198,7 +199,11 @@ public class Stress {
         // Populate schema if needed.
         KeyspaceDefinition ksDef = cluster.describeKeyspace(commandArgs.workingKeyspace);
         if(ksDef != null) {
-            cluster.dropKeyspace(commandArgs.workingKeyspace);
+            try {
+                cluster.dropKeyspace(commandArgs.workingKeyspace, true);
+            } catch (HectorException e) {
+                log.warn("Couldn't drop keyspace", e);
+            }
         }
 
         ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
