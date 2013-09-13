@@ -8,6 +8,7 @@ public class CommandArgs {
     public int rowCount = DEF_INSERT_COUNT; 
     public int columnCount = DEF_COLUMN_COUNT; 
     public int columnWidth = DEF_COLUMN_WIDTH;
+    public int keyWidth = DEF_COLUMN_WIDTH;
     public int batchSize = DEF_BATCH_SIZE;
     public String operation = DEF_OPERATION;
     public int threads = DEF_CLIENTS;

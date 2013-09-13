@@ -23,7 +23,7 @@
 				<target>1.6</target>
 				<optimize>true</optimize>
 				<debug>true</debug>
-				<showDeprecation>true</showDeprecation>
+				<!--<showDeprecation>true</showDeprecation>-->
 				<showWarnings>true</showWarnings>
 			</configuration>
 		</plugin>
@@ -144,6 +144,11 @@
             <groupId>jline</groupId>
             <artifactId>jline</artifactId>
             <version>0.9.94</version>
-        </dependency>		
-	</dependencies>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>13.0</version>
+        </dependency>
+    </dependencies>
 </project>

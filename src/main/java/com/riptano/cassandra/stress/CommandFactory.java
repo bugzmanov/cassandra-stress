@@ -3,6 +3,8 @@ package com.riptano.cassandra.stress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 
 public class CommandFactory {
   
@@ -11,7 +13,7 @@ public class CommandFactory {
     public static StressCommand getInstance(int startKey, CommandArgs commandArgs, CommandRunner commandRunner) {
         switch(commandArgs.getOperation()) {
         case INSERT:
-            return new InsertCommand(startKey, commandArgs, commandRunner);        
+            return new InsertCommand(new AtomicLong(), startKey, commandArgs, commandRunner);
         case READ:
             return new SliceCommand(startKey, commandArgs, commandRunner);     
         case RANGESLICE:
@@ -22,6 +24,6 @@ public class CommandFactory {
           return new VerifyLastInsertCommand(startKey, commandArgs, commandRunner);
         };
         log.info("Runnig default Insert command...");
-        return new InsertCommand(startKey, commandArgs, commandRunner);
+        return new InsertCommand(new AtomicLong(), startKey, commandArgs, commandRunner);
     }
 }

@@ -7,17 +7,22 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class InsertCommand extends StressCommand {
 
-    private static final String KEY_FORMAT = "%010d";
+//    private static final String KEY_FORMAT = "%010d";
+    private static final String KEY_FORMAT = "%010d_%s";
 
     private static Logger log = LoggerFactory.getLogger(InsertCommand.class);
     
     protected final Mutator<String> mutator;
-    
-    public InsertCommand(int startKey, CommandArgs commandArgs, CommandRunner commandRunner) {
+    private final AtomicLong total;
+
+    public InsertCommand(AtomicLong total, int startKey, CommandArgs commandArgs, CommandRunner commandRunner) {
         super(startKey, commandArgs, commandRunner);
         mutator = HFactory.createMutator(commandArgs.keyspace, StringSerializer.get());
+        this.total = total;
     }
 
     @Override
@@ -25,18 +30,21 @@ public class InsertCommand extends StressCommand {
 
         String key = null;
         // take into account string formatting for column width
-        int colWidth = commandArgs.columnWidth - 9 <= 0 ? 7 : commandArgs.columnWidth -9;  
-        int rows = 0;        
+        int colWidth = commandArgs.columnWidth - 9 <= 0 ? 7 : commandArgs.columnWidth -9;
+        int keyWidth = commandArgs.keyWidth - 9 <= 0 ? 7 : commandArgs.keyWidth -9;
+        int rows = 0;
         log.info("StartKey: {} for thread {}", startKey, Thread.currentThread().getId());
         while (rows < commandArgs.getKeysPerThread()) {
             if ( log.isDebugEnabled() ) {
                 log.debug("rows at: {} for thread {}", rows, Thread.currentThread().getId());
             }
+            int insertsCount = 0;
             for (int j = 0; j < commandArgs.batchSize; j++) {
-                key = String.format(KEY_FORMAT, rows+startKey);
+                key = String.format(KEY_FORMAT, rows+startKey, RandomStringUtils.random(keyWidth));
                 for (int j2 = 0; j2 < commandArgs.columnCount; j2++) {
                     mutator.addInsertion(key, commandArgs.workingColumnFamily, HFactory.createStringColumn(String.format(COLUMN_NAME_FORMAT, j2),
-                            String.format(COLUMN_VAL_FORMAT, j2, RandomStringUtils.random(colWidth))));     
+                            String.format(COLUMN_VAL_FORMAT, j2, RandomStringUtils.random(colWidth))));
+                    insertsCount++;
                     if ( j2 > 0 && j2 % commandArgs.batchSize == 0 ) {
                       executeMutator(mutator, rows);
                     }
@@ -45,9 +53,9 @@ public class InsertCommand extends StressCommand {
                 if (++rows == commandArgs.getKeysPerThread() ) {
                     break;
                 }
-                
             }
             executeMutator(mutator,rows);
+            total.addAndGet(insertsCount);
         }
         commandRunner.doneSignal.countDown();
         log.info("Last key was: {} for thread {}", key, Thread.currentThread().getId());

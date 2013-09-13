@@ -27,7 +27,10 @@ import org.slf4j.LoggerFactory;
  * @author zznate <nate@riptano.com>
  */
 public class Stress {
-    
+
+    public static final String REPLICATION_FACTOR = "replication-factor";
+    public static final String DISABLE_DURABLE_WRITES = "disable-durable-writes";
+    public static final String KEY_WIDTH = "key-width";
     private static Logger log = LoggerFactory.getLogger(Stress.class);
     
     private CommandArgs commandArgs;
@@ -116,7 +119,12 @@ public class Stress {
         if ( cmd.hasOption("colwidth")) {
             commandArgs.columnWidth = getIntValueOrExit(cmd, "colwidth");
         }
-                
+
+        if ( cmd.hasOption(KEY_WIDTH)) {
+            commandArgs.keyWidth = getIntValueOrExit(cmd, KEY_WIDTH);
+        }
+
+
         if (cmd.hasOption("operation")) {            
             commandArgs.operation = cmd.getOptionValue("operation"); 
         } else {
@@ -129,7 +137,7 @@ public class Stress {
         } catch (IllegalArgumentException iae) {
             return cmd;
         }
-        if ( actOpt == Operation.REPLAY ) {
+        if ( actOpt == Operation.   REPLAY ) {
             try {
                 commandArgs.replayCount = cmd.getArgList().size() > 1 ? Integer.valueOf(cmd.getArgs()[1]) : 1;
             } catch (NumberFormatException nfe) {
@@ -180,24 +188,32 @@ public class Stress {
               throw new IllegalArgumentException("ConsistencyLevels must be specified by their full names. Ie. ONE,QUORUM. " + levels[0]);
             }
         }
-        
+
+        int replicationFactor = cmd.hasOption(REPLICATION_FACTOR) ? getIntValueOrExit(cmd, REPLICATION_FACTOR) : 1;
+
+        boolean durableWrites = !cmd.hasOption(DISABLE_DURABLE_WRITES);
+
         Cluster cluster = HFactory.createCluster("StressCluster", cassandraHostConfigurator);
 
         // Populate schema if needed.
         KeyspaceDefinition ksDef = cluster.describeKeyspace(commandArgs.workingKeyspace);
-        if (ksDef == null) {
-            ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
-                commandArgs.workingKeyspace, commandArgs.workingColumnFamily, ComparatorType.BYTESTYPE);
-
-            KeyspaceDefinition newKeyspace = HFactory.createKeyspaceDefinition(
-                commandArgs.workingKeyspace, ThriftKsDef.DEF_STRATEGY_CLASS, 1, Arrays.asList(cfDef));
-
-            cluster.addKeyspace(newKeyspace, true);
+        if(ksDef != null) {
+            cluster.dropKeyspace(commandArgs.workingKeyspace);
         }
+
+        ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
+            commandArgs.workingKeyspace, commandArgs.workingColumnFamily, ComparatorType.BYTESTYPE);
+
+        ThriftKsDef newKeyspace = new ThriftKsDef(
+            commandArgs.workingKeyspace, ThriftKsDef.DEF_STRATEGY_CLASS, replicationFactor, Arrays.asList(cfDef));
+        newKeyspace.setDurableWrites(durableWrites);
+
+        cluster.addKeyspace(newKeyspace, true);
 
         commandArgs.keyspace = clc == null ? HFactory.createKeyspace(commandArgs.workingKeyspace, cluster) : 
           HFactory.createKeyspace(commandArgs.workingKeyspace, cluster, clc);
         commandRunner = new CommandRunner(cluster.getKnownPoolHosts(true));
+
         if ( commandArgs.validateCommand() && commandArgs.getOperation() != Operation.REPLAY) {
             commandRunner.processCommand(commandArgs);
         } else {
@@ -216,18 +232,21 @@ public class Stress {
         options.addOption("o","operation", true, "The type of operation: insert or select");
         options.addOption("t","threads", true, "The number of client threads we will create");
         options.addOption("n","num-keys",true,"The number of keys to create");
-        options.addOption("c","columns",true,"The number of columsn to create per key");
+        options.addOption("c","columns",true,"The number of columns to create per key");
         options.addOption("C","clients",true,"The number of pooled clients to use");
         options.addOption("b","batch-size",true,"The number of rows in the batch_mutate call");        
         options.addOption("m","unframed",false,"Disable use of TFramedTransport");
-        options.addOption("w","colwidth",true,"The widht of the column in bytes. Default is 16");
-        options.addOption("M","max-wait",true,"The Maximum time to wait on aquiring a connection from the pool (maxWaitTimeWhenExhausted). Default is forever.");
+        options.addOption("w","colwidth",true,"The width of the column in bytes. Default is 16");
+        options.addOption("M","max-wait",true,"The Maximum time to wait on acquiring a connection from the pool (maxWaitTimeWhenExhausted). Default is forever.");
         options.addOption("T","thrift-timeout",true,"The ThriftSocketTimeout value.");
         options.addOption("D","discovery-delay",true,"The amount of time to wait between runs of Auto host discovery. Providing a value enables this service");
         options.addOption("R","retry-delay",true,"The amount of time to wait between runs of Downed host retry delay execution. 30 seconds by default.");
         options.addOption("S","skip-retry-delay",false,"Disable downed host retry service execution.");
         options.addOption("L","consistency-levels",true,"Defaults to QUORUM for R+W, specified in the form of [read]:[write] eg. '-L ONE:ONE'");
         options.addOption("k","start-key",true,"Start on a specific key");
+        options.addOption("r", REPLICATION_FACTOR,true,"Replication factor");
+        options.addOption("d", DISABLE_DURABLE_WRITES, false, "Disable durable writes(commit log)");
+        options.addOption("kw", KEY_WIDTH, true, "Size of a key");
         return options;
     }
     

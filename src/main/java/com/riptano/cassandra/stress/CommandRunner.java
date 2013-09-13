@@ -1,13 +1,13 @@
 package com.riptano.cassandra.stress;
 
-import java.util.Date;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import me.prettyprint.cassandra.service.CassandraHost;
 
 import org.apache.cassandra.utils.LatencyTracker;
@@ -41,22 +41,41 @@ public class CommandRunner {
         if ( commandArgs.getOperation() != Operation.REPLAY ) {
             previousOperation = commandArgs.getOperation();
         }
-        
-        ExecutorService exec = Executors.newFixedThreadPool(commandArgs.threads);
+
+        ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(commandArgs.threads));
         log.info("Starting command run at {}", new Date());
         long currentTime = System.currentTimeMillis();
-        for (int execCount = 0; execCount < commandArgs.getExecutionCount(); execCount++) {
-            doneSignal = new CountDownLatch(commandArgs.threads);
-            for (int i = 0; i < commandArgs.threads; i++) {
-                log.info("submitting task {}", i+1);
-                exec.submit(getCommandInstance(i*commandArgs.getKeysPerThread(), commandArgs, this));
-            }
-            log.info("all tasks submitted for execution for execution {} of {}", execCount+1, commandArgs.getExecutionCount());
-            doneSignal.await();    
+        AtomicLong total = new AtomicLong();
+        doneSignal = new CountDownLatch(commandArgs.threads);
+        List<ListenableFuture<Void>> futures = new ArrayList<ListenableFuture<Void>>(commandArgs.threads);
+
+        long submitTime = System.currentTimeMillis();
+        for (int i = 0; i < commandArgs.threads; i++) {
+            ListenableFuture<Void> submit = exec.submit(getCommandInstance(total, i * commandArgs.getKeysPerThread(), commandArgs, this));
+            futures.add(submit);
         }
+
+        log.info("Submitted {} tasks", commandArgs.threads);
+
+        ListenableFuture<List<Void>> future = Futures.allAsList(futures);
+
+        while(!future.isDone()) {
+            long time = System.currentTimeMillis();
+            long timeSpentSecs = (time - submitTime) / 1000;
+            long rate = total.get() / (timeSpentSecs != 0 ? timeSpentSecs : 1);
+
+            log.info("{} sec: progress {}/{}. Approximate rate: {} recs/sec", new Object[]{timeSpentSecs, total.get(), commandArgs.rowCount, rate});
+
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                log.warn("Interrupted while waiting for work to be finished");
+            }
+        }
+
+
         log.info("Finished command run at {} total duration: {} seconds", new Date(), (System.currentTimeMillis()-currentTime)/1000);
-        
-        
+
         exec.shutdown();
         
         for (CassandraHost host : latencies.keySet()) {
@@ -67,7 +86,7 @@ public class CommandRunner {
         }        
     }
     
-    private StressCommand getCommandInstance(int startKeyArg, CommandArgs commandArgs, CommandRunner commandRunner) {
+    private StressCommand getCommandInstance(AtomicLong counter, int startKeyArg, CommandArgs commandArgs, CommandRunner commandRunner) {
         
         int startKey = commandArgs.startKey + startKeyArg;
         if ( log.isDebugEnabled() ) {
@@ -79,20 +98,21 @@ public class CommandRunner {
             operation = previousOperation;
         }
         switch(operation) {
-        case INSERT:
-            return new InsertCommand(startKey, commandArgs, commandRunner);        
-        case READ:
-            return new SliceCommand(startKey, commandArgs, commandRunner);     
-        case RANGESLICE:
-            return new RangeSliceCommand(startKey, commandArgs, commandRunner);
-        case MULTIGET:
-            return new MultigetSliceCommand(startKey, commandArgs, commandRunner);
-        case VERIFY_LAST_INSERT:
-          return new VerifyLastInsertCommand(startKey, commandArgs, commandRunner);
-        case COUNTERSPREAD:
-          return new BucketingCounterSpreadCommand(startKey, commandArgs, commandRunner);
-        };
-        return new InsertCommand(startKey, commandArgs, commandRunner);
+            case INSERT:
+                return new InsertCommand(counter, startKey, commandArgs, commandRunner);
+            case READ:
+                return new SliceCommand(startKey, commandArgs, commandRunner);
+            case RANGESLICE:
+                return new RangeSliceCommand(startKey, commandArgs, commandRunner);
+            case MULTIGET:
+                return new MultigetSliceCommand(startKey, commandArgs, commandRunner);
+            case VERIFY_LAST_INSERT:
+              return new VerifyLastInsertCommand(startKey, commandArgs, commandRunner);
+            case COUNTERSPREAD:
+              return new BucketingCounterSpreadCommand(startKey, commandArgs, commandRunner);
+        }
+
+        return new InsertCommand(counter, startKey, commandArgs, commandRunner);
     }
 
 }
