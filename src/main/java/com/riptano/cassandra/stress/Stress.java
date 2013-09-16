@@ -32,6 +32,7 @@ public class Stress {
     public static final String REPLICATION_FACTOR = "replication-factor";
     public static final String DISABLE_DURABLE_WRITES = "disable-durable-writes";
     public static final String KEY_WIDTH = "key-width";
+    public static final String REUSE_KEYSPACE = "reuse-keyspace";
     private static Logger log = LoggerFactory.getLogger(Stress.class);
     
     private CommandArgs commandArgs;
@@ -177,7 +178,10 @@ public class Stress {
         } 
         if (cmd.hasOption("skip-retry-delay")) {          
             cassandraHostConfigurator.setRetryDownedHosts(false);
-        } 
+        }
+
+        boolean reuseKeyspace = cmd.hasOption(REUSE_KEYSPACE);
+
         ConfigurableConsistencyLevel clc = null;
         if ( cmd.hasOption("consistency-levels")) {
             String[] levels = cmd.getOptionValues("consistency-levels")[0].split(":");
@@ -198,7 +202,7 @@ public class Stress {
 
         // Populate schema if needed.
         KeyspaceDefinition ksDef = cluster.describeKeyspace(commandArgs.workingKeyspace);
-        if(ksDef != null) {
+        if(ksDef != null && !reuseKeyspace) {
             try {
                 cluster.dropKeyspace(commandArgs.workingKeyspace, true);
             } catch (HectorException e) {
@@ -206,18 +210,21 @@ public class Stress {
             }
         }
 
-        ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
-            commandArgs.workingKeyspace, commandArgs.workingColumnFamily, ComparatorType.BYTESTYPE);
+        if (!reuseKeyspace || ksDef == null) {
+            ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
+                commandArgs.workingKeyspace, commandArgs.workingColumnFamily, ComparatorType.BYTESTYPE);
 
-        ThriftKsDef newKeyspace = new ThriftKsDef(
-            commandArgs.workingKeyspace, ThriftKsDef.DEF_STRATEGY_CLASS, replicationFactor, Arrays.asList(cfDef));
-        newKeyspace.setDurableWrites(durableWrites);
+            ThriftKsDef newKeyspace = new ThriftKsDef(
+                commandArgs.workingKeyspace, ThriftKsDef.DEF_STRATEGY_CLASS, replicationFactor, Arrays.asList(cfDef));
+            newKeyspace.setDurableWrites(durableWrites);
 
-        cluster.addKeyspace(newKeyspace, true);
+            cluster.addKeyspace(newKeyspace, true);
+        }
 
         commandArgs.keyspace = clc == null ? HFactory.createKeyspace(commandArgs.workingKeyspace, cluster) : 
           HFactory.createKeyspace(commandArgs.workingKeyspace, cluster, clc);
         commandRunner = new CommandRunner(cluster.getKnownPoolHosts(true));
+
 
         if ( commandArgs.validateCommand() && commandArgs.getOperation() != Operation.REPLAY) {
             commandRunner.processCommand(commandArgs);
@@ -252,6 +259,7 @@ public class Stress {
         options.addOption("r", REPLICATION_FACTOR,true,"Replication factor");
         options.addOption("d", DISABLE_DURABLE_WRITES, false, "Disable durable writes(commit log)");
         options.addOption("kw", KEY_WIDTH, true, "Size of a key");
+        options.addOption("rk", REUSE_KEYSPACE, false, "Reuse existing keyspace");
         return options;
     }
     
