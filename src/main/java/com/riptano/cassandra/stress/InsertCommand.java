@@ -52,9 +52,9 @@ public class InsertCommand extends StressCommand {
                     mutator.addInsertion(key, workingColumnFamily, HFactory.createStringColumn(String.format(COLUMN_NAME_FORMAT, j2),
                             String.format(COLUMN_VAL_FORMAT, j2, RandomStringUtils.random(colWidth))));
                     insertsCount++;
-                    if ( j2 > 0 && j2 % commandArgs.batchSize == 0 ) {
-                      executeMutator(mutator, rows);
-                    }
+//                    if ( j2 > 0 && j2 % commandArgs.batchSize == 0 ) {
+//                      executeMutator(mutator, rows);
+//                    }
                 }
                 
                 if (++rows == commandArgs.getKeysPerThread() ) {
