@@ -36,6 +36,7 @@ public class Stress {
     public static final String KEY_WIDTH = "key-width";
     public static final String REUSE_KEYSPACE = "reuse-keyspace";
     public static final String CF_PERF_THREAD = "cf-perf-thread";
+    public static final String COLUMN_FAMILY_NAME = "column-family-name";
     private static Logger log = LoggerFactory.getLogger(Stress.class);
     
     private CommandArgs commandArgs;
@@ -203,6 +204,13 @@ public class Stress {
 
         commandArgs.cfPerThread = cmd.hasOption(CF_PERF_THREAD);
 
+        if (cmd.hasOption(COLUMN_FAMILY_NAME)) {
+            if(cmd.hasOption(CF_PERF_THREAD)) {
+                throw new IllegalArgumentException("Can not have name and be per thread");
+            }
+            commandArgs.singleCFName = cmd.getOptionValue(COLUMN_FAMILY_NAME);
+        }
+
         Cluster cluster = HFactory.createCluster("StressCluster", cassandraHostConfigurator);
 
         // Populate schema if needed.
@@ -226,7 +234,7 @@ public class Stress {
                 }
             } else {
                 ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
-                    commandArgs.workingKeyspace, CommandArgs.DEF_COLUMN_FAMILY, ComparatorType.BYTESTYPE);
+                    commandArgs.workingKeyspace, commandArgs.singleCFName, ComparatorType.BYTESTYPE);
                 cfDefs.add(cfDef);
             }
 
@@ -277,6 +285,7 @@ public class Stress {
         options.addOption("kw", KEY_WIDTH, true, "Size of a key");
         options.addOption("rk", REUSE_KEYSPACE, false, "Reuse existing keyspace");
         options.addOption("cft", CF_PERF_THREAD, false, "Each thread will use own column family");
+        options.addOption("cfn", COLUMN_FAMILY_NAME, true, "Name of column family");
         return options;
     }
     

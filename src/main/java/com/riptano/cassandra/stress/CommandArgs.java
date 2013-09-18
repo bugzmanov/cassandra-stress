@@ -28,6 +28,7 @@ public class CommandArgs {
     public int startKey = DEF_START_KEY;
     public String workingKeyspace = DEF_KEYSPACE;
     public boolean cfPerThread = false;
+    public String singleCFName = DEF_COLUMN_FAMILY;
 
     public int getKeysPerThread() {
         // TODO check if batchSize is greater than this, reset if so
@@ -54,7 +55,7 @@ public class CommandArgs {
 
     public String getWorkingColumnFamily(int startKey) {
         if(!cfPerThread) {
-            return DEF_COLUMN_FAMILY;
+            return singleCFName;
         }
         int keysPerThread = getKeysPerThread();
         return DEF_COLUMN_FAMILY + startKey / (keysPerThread > 0 ? keysPerThread : 1);
