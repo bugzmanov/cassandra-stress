@@ -7,6 +7,7 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class InsertCommand extends StressCommand {
@@ -14,6 +15,7 @@ public class InsertCommand extends StressCommand {
 //    private static final String KEY_FORMAT = "%010d";
 
     private static final String KEY_FORMAT = "%010d_%s";
+    public static final int RND_COUNT = 1000;
 
     private static Logger log = LoggerFactory.getLogger(InsertCommand.class);
     
@@ -41,6 +43,12 @@ public class InsertCommand extends StressCommand {
         long cassandraTime = 0;
         String keyRandomPart = RandomStringUtils.random(keyWidth);
 
+        String cols[] = new String[RND_COUNT];
+        for (int i = 0; i < cols.length; i++) {
+            cols[i] = RandomStringUtils.random(colWidth);
+        }
+
+        Random random = new Random(System.currentTimeMillis());
         while (rows < commandArgs.getKeysPerThread()) {
             if ( log.isDebugEnabled() ) {
                 log.debug("rows at: {} for thread {}", rows, Thread.currentThread().getId());
@@ -50,7 +58,7 @@ public class InsertCommand extends StressCommand {
                 key = String.format(KEY_FORMAT, rows+startKey, keyRandomPart);
                 for (int j2 = 0; j2 < commandArgs.columnCount; j2++) {
                     mutator.addInsertion(key, workingColumnFamily, HFactory.createStringColumn(String.format(COLUMN_NAME_FORMAT, j2),
-                            String.format(COLUMN_VAL_FORMAT, j2, RandomStringUtils.random(colWidth))));
+                            String.format(COLUMN_VAL_FORMAT, j2, cols[random.nextInt(RND_COUNT)])));
                     insertsCount++;
 //                    if ( j2 > 0 && j2 % commandArgs.batchSize == 0 ) {
 //                      executeMutator(mutator, rows);
