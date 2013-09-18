@@ -37,6 +37,7 @@ public class Stress {
     public static final String REUSE_KEYSPACE = "reuse-keyspace";
     public static final String CF_PERF_THREAD = "cf-perf-thread";
     public static final String COLUMN_FAMILY_NAME = "column-family-name";
+    public static final String KEYSPACE_NAME = "keyspace-name";
     private static Logger log = LoggerFactory.getLogger(Stress.class);
     
     private CommandArgs commandArgs;
@@ -197,6 +198,9 @@ public class Stress {
               throw new IllegalArgumentException("ConsistencyLevels must be specified by their full names. Ie. ONE,QUORUM. " + levels[0]);
             }
         }
+        if(cmd.hasOption(KEYSPACE_NAME)) {
+            commandArgs.workingKeyspace = cmd.getOptionValue(KEYSPACE_NAME);
+        }
 
         int replicationFactor = cmd.hasOption(REPLICATION_FACTOR) ? getIntValueOrExit(cmd, REPLICATION_FACTOR) : 1;
 
@@ -286,6 +290,7 @@ public class Stress {
         options.addOption("rk", REUSE_KEYSPACE, false, "Reuse existing keyspace");
         options.addOption("cft", CF_PERF_THREAD, false, "Each thread will use own column family");
         options.addOption("cfn", COLUMN_FAMILY_NAME, true, "Name of column family");
+        options.addOption("kn", KEYSPACE_NAME, true, "Name of column keyspace");
         return options;
     }
     
