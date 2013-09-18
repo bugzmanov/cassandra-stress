@@ -1,6 +1,8 @@
 package com.riptano.cassandra.stress;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import jline.ConsoleReader;
 import me.prettyprint.cassandra.model.ConfigurableConsistencyLevel;
@@ -33,6 +35,7 @@ public class Stress {
     public static final String DISABLE_DURABLE_WRITES = "disable-durable-writes";
     public static final String KEY_WIDTH = "key-width";
     public static final String REUSE_KEYSPACE = "reuse-keyspace";
+    public static final String CF_PERF_THREAD = "cf-perf-thread";
     private static Logger log = LoggerFactory.getLogger(Stress.class);
     
     private CommandArgs commandArgs;
@@ -198,6 +201,8 @@ public class Stress {
 
         boolean durableWrites = !cmd.hasOption(DISABLE_DURABLE_WRITES);
 
+        commandArgs.cfPerThread = cmd.hasOption(CF_PERF_THREAD);
+
         Cluster cluster = HFactory.createCluster("StressCluster", cassandraHostConfigurator);
 
         // Populate schema if needed.
@@ -211,11 +216,22 @@ public class Stress {
         }
 
         if (!reuseKeyspace || ksDef == null) {
-            ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
-                commandArgs.workingKeyspace, commandArgs.workingColumnFamily, ComparatorType.BYTESTYPE);
+            List<ColumnFamilyDefinition> cfDefs = new ArrayList<ColumnFamilyDefinition>();
+            if(commandArgs.cfPerThread) {
+                for (int i = 0; i < commandArgs.threads; i++) {
+                    String cfName = commandArgs.getWorkingColumnFamily(commandArgs.getKeysPerThread() * i);
+                    ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
+                            commandArgs.workingKeyspace, cfName, ComparatorType.BYTESTYPE);
+                    cfDefs.add(cfDef);
+                }
+            } else {
+                ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
+                    commandArgs.workingKeyspace, CommandArgs.DEF_COLUMN_FAMILY, ComparatorType.BYTESTYPE);
+                cfDefs.add(cfDef);
+            }
 
             ThriftKsDef newKeyspace = new ThriftKsDef(
-                commandArgs.workingKeyspace, ThriftKsDef.DEF_STRATEGY_CLASS, replicationFactor, Arrays.asList(cfDef));
+                commandArgs.workingKeyspace, ThriftKsDef.DEF_STRATEGY_CLASS, replicationFactor, cfDefs);
             newKeyspace.setDurableWrites(durableWrites);
 
             cluster.addKeyspace(newKeyspace, true);
@@ -260,6 +276,7 @@ public class Stress {
         options.addOption("d", DISABLE_DURABLE_WRITES, false, "Disable durable writes(commit log)");
         options.addOption("kw", KEY_WIDTH, true, "Size of a key");
         options.addOption("rk", REUSE_KEYSPACE, false, "Reuse existing keyspace");
+        options.addOption("cft", CF_PERF_THREAD, false, "Each thread will use own column family");
         return options;
     }
     

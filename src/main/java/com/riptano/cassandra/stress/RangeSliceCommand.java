@@ -16,16 +16,18 @@ public class RangeSliceCommand extends StressCommand {
     
     private final RangeSlicesQuery<String, String, String> rangeSlicesQuery;
     private StringSerializer se = StringSerializer.get();
-    
+    private String workingColumnFamily;
+
     public RangeSliceCommand(int startKey, CommandArgs commandArgs, CommandRunner commandRunner) {
         super(startKey, commandArgs, commandRunner);
         rangeSlicesQuery = HFactory.createRangeSlicesQuery(commandArgs.keyspace, se, se, se);
+        workingColumnFamily = commandArgs.getWorkingColumnFamily(startKey);
     }
 
     @Override
     public Long call() throws Exception {
         int rows = 0;
-        rangeSlicesQuery.setColumnFamily(commandArgs.workingColumnFamily);
+        rangeSlicesQuery.setColumnFamily(workingColumnFamily);
         log.debug("Starting SliceCommand");
         try {
             while (rows < commandArgs.getKeysPerThread()) {

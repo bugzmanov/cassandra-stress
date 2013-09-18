@@ -28,12 +28,15 @@ public class VerifyLastInsertCommand extends StressCommand {
     protected final Mutator<String> mutator;
     private final SliceQuery<String, String, String> sliceQuery;
     private StringSerializer se = StringSerializer.get();
-    
+    private String workingColumnFamily;
+
     public VerifyLastInsertCommand(int startKey, CommandArgs commandArgs, CommandRunner commandRunner) {
         super(startKey, commandArgs, commandRunner);
         verifyCondition();
         mutator = HFactory.createMutator(commandArgs.keyspace, StringSerializer.get());
         sliceQuery = HFactory.createSliceQuery(commandArgs.keyspace, se, se, se);
+        workingColumnFamily = commandArgs.getWorkingColumnFamily(startKey);
+
     }
 
     private void verifyCondition() {
@@ -47,15 +50,15 @@ public class VerifyLastInsertCommand extends StressCommand {
     public Long call() throws Exception {
       log.debug("Starting VerifyLastInsertCommand");
       String key = "test";
-      sliceQuery.setColumnFamily(commandArgs.workingColumnFamily);
+        sliceQuery.setColumnFamily(workingColumnFamily);
 
       log.info("StartKey: {} for thread {}", key, Thread.currentThread().getId());
       String colValue;
 
       for (int col = 0; col < commandArgs.columnCount; col++) {
         colValue = String.format(COLUMN_VAL_FORMAT, col);
-        mutator.addInsertion(key, 
-                             commandArgs.workingColumnFamily, 
+        mutator.addInsertion(key,
+                             workingColumnFamily,
                              HFactory.createStringColumn(String.format(COLUMN_NAME_FORMAT, col),
                                  colValue));
         executeMutator(col);

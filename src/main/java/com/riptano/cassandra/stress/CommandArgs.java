@@ -4,6 +4,17 @@ import me.prettyprint.hector.api.Keyspace;
 
 public class CommandArgs {
 
+    private static final int DEF_CLIENTS = 50;
+    private static final int DEF_INSERT_COUNT = 10000;
+    private static final int DEF_BATCH_SIZE = 100;
+    private static final int DEF_COLUMN_COUNT = 10;
+    private static final String DEF_OPERATION = "insert";
+    private static final int DEF_REPLAY_COUNT = 0;
+    private static final int DEF_COLUMN_WIDTH = 16;
+    private static final int DEF_START_KEY = 0;
+    private static final String DEF_KEYSPACE = "StressKeyspace";
+    public static final String DEF_COLUMN_FAMILY = "StressStandard";
+
     public Keyspace keyspace;    
     public int rowCount = DEF_INSERT_COUNT; 
     public int columnCount = DEF_COLUMN_COUNT; 
@@ -16,19 +27,8 @@ public class CommandArgs {
     public int replayCount = DEF_REPLAY_COUNT;
     public int startKey = DEF_START_KEY;
     public String workingKeyspace = DEF_KEYSPACE;
-    public String workingColumnFamily = DEF_COLUMN_FAMILY;
-    
-    private static int DEF_CLIENTS = 50;
-    private static int DEF_INSERT_COUNT = 10000;
-    private static int DEF_BATCH_SIZE = 100;
-    private static int DEF_COLUMN_COUNT = 10;
-    private static String DEF_OPERATION = "insert";
-    private static int DEF_REPLAY_COUNT = 0;
-    private static int DEF_COLUMN_WIDTH = 16;
-    private static int DEF_START_KEY = 0;
-    private static String DEF_KEYSPACE = "StressKeyspace";
-    private static String DEF_COLUMN_FAMILY = "StressStandard";
-    
+    public boolean cfPerThread = false;
+
     public int getKeysPerThread() {
         // TODO check if batchSize is greater than this, reset if so
         return rowCount / threads;
@@ -50,6 +50,13 @@ public class CommandArgs {
     public Operation getOperation() {        
         return Operation.get(operation);
     }
-    
-    
+
+
+    public String getWorkingColumnFamily(int startKey) {
+        if(!cfPerThread) {
+            return DEF_COLUMN_FAMILY;
+        }
+        int keysPerThread = getKeysPerThread();
+        return DEF_COLUMN_FAMILY + startKey / (keysPerThread > 0 ? keysPerThread : 1);
+    }
 }

@@ -19,16 +19,18 @@ public class MultigetSliceCommand extends StressCommand {
     
     private final MultigetSliceQuery<String, String, String> multigetSliceQuery;
     private final StringSerializer se = StringSerializer.get();
-    
+    private String workingColumnFamily;
+
     public MultigetSliceCommand(int startKey, CommandArgs commandArgs, CommandRunner commandRunner) {
         super(startKey, commandArgs, commandRunner);
         multigetSliceQuery = HFactory.createMultigetSliceQuery(commandArgs.keyspace, se, se, se);
+        workingColumnFamily = commandArgs.getWorkingColumnFamily(startKey);
     }
 
     @Override
     public Long call() throws Exception {
         int rows = 0;
-        multigetSliceQuery.setColumnFamily(commandArgs.workingColumnFamily);
+        multigetSliceQuery.setColumnFamily(workingColumnFamily);
         log.debug("Starting MultigetSliceCommand");
         String[] keys = new String[commandArgs.batchSize];
         try {

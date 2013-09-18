@@ -18,11 +18,13 @@ public class SliceCommand extends StressCommand {
     private final HColumnFamily<String, String> columnFamily;
     
     private static StringSerializer se = StringSerializer.get();
-    
+    private final String workingColumnFamily;
+
     public SliceCommand(int startKey, CommandArgs commandArgs, CommandRunner commandRunner) {
         super(startKey, commandArgs, commandRunner);
         sliceQuery = HFactory.createSliceQuery(commandArgs.keyspace, se, se, se);
-        columnFamily = new HColumnFamilyImpl<String, String>(commandArgs.keyspace, commandArgs.workingColumnFamily, se, se);
+        workingColumnFamily = commandArgs.getWorkingColumnFamily(startKey);
+        columnFamily = new HColumnFamilyImpl<String, String>(commandArgs.keyspace, workingColumnFamily, se, se);
         columnFamily.setCount(commandArgs.columnCount);
     }
 
@@ -30,7 +32,7 @@ public class SliceCommand extends StressCommand {
     public Long call() throws Exception {
         int rows = 0;
         Random random = new Random();
-        sliceQuery.setColumnFamily(commandArgs.workingColumnFamily);
+        sliceQuery.setColumnFamily(workingColumnFamily);
         log.debug("Starting SliceCommand");
         try {            
             while (rows < commandArgs.getKeysPerThread()) {

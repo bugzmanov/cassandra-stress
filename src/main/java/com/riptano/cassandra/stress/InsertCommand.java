@@ -19,9 +19,11 @@ public class InsertCommand extends StressCommand {
     
     protected final Mutator<String> mutator;
     private final AtomicLong total;
+    private String workingColumnFamily;
 
     public InsertCommand(AtomicLong total, int startKey, CommandArgs commandArgs, CommandRunner commandRunner) {
         super(startKey, commandArgs, commandRunner);
+        workingColumnFamily = commandArgs.getWorkingColumnFamily(startKey);
         mutator = HFactory.createMutator(commandArgs.keyspace, StringSerializer.get());
         this.total = total;
     }
@@ -47,7 +49,7 @@ public class InsertCommand extends StressCommand {
             for (int j = 0; j < commandArgs.batchSize; j++) {
                 key = String.format(KEY_FORMAT, rows+startKey, keyRandomPart);
                 for (int j2 = 0; j2 < commandArgs.columnCount; j2++) {
-                    mutator.addInsertion(key, commandArgs.workingColumnFamily, HFactory.createStringColumn(String.format(COLUMN_NAME_FORMAT, j2),
+                    mutator.addInsertion(key, workingColumnFamily, HFactory.createStringColumn(String.format(COLUMN_NAME_FORMAT, j2),
                             String.format(COLUMN_VAL_FORMAT, j2, RandomStringUtils.random(colWidth))));
                     insertsCount++;
                     if ( j2 > 0 && j2 % commandArgs.batchSize == 0 ) {
