@@ -29,6 +29,7 @@ public class CommandArgs {
     public String workingKeyspace = DEF_KEYSPACE;
     public String singleCFName = DEF_COLUMN_FAMILY;
     public int cfCount = 1;
+    public int columnNameWidth = 3;
 
     public int getKeysPerThread() {
         // TODO check if batchSize is greater than this, reset if so

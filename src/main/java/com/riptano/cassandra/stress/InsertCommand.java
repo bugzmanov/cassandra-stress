@@ -43,10 +43,9 @@ public class InsertCommand extends StressCommand {
         long cassandraTime = 0;
         String keyRandomPart = RandomStringUtils.random(keyWidth);
 
-        String cols[] = new String[RND_COUNT];
-        for (int i = 0; i < cols.length; i++) {
-            cols[i] = RandomStringUtils.random(colWidth);
-        }
+        String[] colNames = generateRandom(commandArgs.columnNameWidth, commandArgs.columnCount);
+
+        String[] columnsContent = generateRandom(colWidth, RND_COUNT);
 
         Random random = new Random(System.currentTimeMillis());
         while (rows < commandArgs.getKeysPerThread()) {
@@ -57,8 +56,8 @@ public class InsertCommand extends StressCommand {
             for (int j = 0; j < commandArgs.batchSize; j++) {
                 key = String.format(KEY_FORMAT, rows+startKey, keyRandomPart);
                 for (int j2 = 0; j2 < commandArgs.columnCount; j2++) {
-                    mutator.addInsertion(key, workingColumnFamily, HFactory.createStringColumn(String.format(COLUMN_NAME_FORMAT, j2),
-                            String.format(COLUMN_VAL_FORMAT, j2, cols[random.nextInt(RND_COUNT)])));
+                    mutator.addInsertion(key, workingColumnFamily, HFactory.createStringColumn(String.format(COLUMN_NAME_FORMAT, colNames[j], j2),
+                            String.format(COLUMN_VAL_FORMAT, j2, columnsContent[random.nextInt(RND_COUNT)])));
                     insertsCount++;
 //                    if ( j2 > 0 && j2 % commandArgs.batchSize == 0 ) {
 //                      executeMutator(mutator, rows);
@@ -87,8 +86,15 @@ public class InsertCommand extends StressCommand {
         return cassandraTime;
     }
 
+    private String[] generateRandom(int colWidth, int count) {
+        String columnsContent[] = new String[count];
+        for (int i = 0; i < columnsContent.length; i++) {
+            columnsContent[i] = RandomStringUtils.random(colWidth);
+        }
+        return columnsContent;
+    }
 
-    
+
     private static final String COLUMN_VAL_FORMAT = "%08d_%s";
-    private static final String COLUMN_NAME_FORMAT = "col_%08d";
+    private static final String COLUMN_NAME_FORMAT = "%s_%08d";
 }

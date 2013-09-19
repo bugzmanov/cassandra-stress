@@ -36,6 +36,7 @@ public class Stress {
     public static final String REUSE_KEYSPACE = "reuse-keyspace";
     public static final String COLUMN_FAMILIES_COUNT = "column-family-count";
     public static final String KEYSPACE_NAME = "keyspace-name";
+    public static final String COLUMN_NAME_WIDTH = "column-name-width";
 
     private static Logger log = LoggerFactory.getLogger(Stress.class);
     
@@ -130,6 +131,9 @@ public class Stress {
             commandArgs.keyWidth = getIntValueOrExit(cmd, KEY_WIDTH);
         }
 
+        if (cmd.hasOption(COLUMN_NAME_WIDTH)) {
+            commandArgs.columnNameWidth = getIntValueOrExit(cmd, COLUMN_NAME_WIDTH);
+        }
 
         if (cmd.hasOption("operation")) {            
             commandArgs.operation = cmd.getOptionValue("operation"); 
@@ -288,6 +292,7 @@ public class Stress {
         options.addOption("rk", REUSE_KEYSPACE, false, "Reuse existing keyspace");
         options.addOption("cfc", COLUMN_FAMILIES_COUNT, true, "Number of column families");
         options.addOption("kn", KEYSPACE_NAME, true, "Name of column keyspace");
+        options.addOption("сnw", COLUMN_NAME_WIDTH, true, "Width of a column name");
         return options;
     }
     

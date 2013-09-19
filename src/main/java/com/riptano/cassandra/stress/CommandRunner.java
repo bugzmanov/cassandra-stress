@@ -88,7 +88,7 @@ public class CommandRunner {
             }
         }
 
-        log.info("Finished command run at {} total duration: {} seconds, cassandra time: {}", new Object[]{new Date(), (System.currentTimeMillis()-currentTime)/1000, cassandraTime});
+        log.info("Finished command run at {} total duration: {} seconds, cassandra max time: {}", new Object[]{new Date(), (System.currentTimeMillis()-currentTime)/1000, cassandraTime});
 
         exec.shutdown();
         
