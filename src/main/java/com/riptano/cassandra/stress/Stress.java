@@ -1,7 +1,6 @@
 package com.riptano.cassandra.stress;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import jline.ConsoleReader;
@@ -35,9 +34,9 @@ public class Stress {
     public static final String DISABLE_DURABLE_WRITES = "disable-durable-writes";
     public static final String KEY_WIDTH = "key-width";
     public static final String REUSE_KEYSPACE = "reuse-keyspace";
-    public static final String CF_PERF_THREAD = "cf-perf-thread";
-    public static final String COLUMN_FAMILY_NAME = "column-family-name";
+    public static final String COLUMN_FAMILIES_COUNT = "column-family-count";
     public static final String KEYSPACE_NAME = "keyspace-name";
+
     private static Logger log = LoggerFactory.getLogger(Stress.class);
     
     private CommandArgs commandArgs;
@@ -206,13 +205,12 @@ public class Stress {
 
         boolean durableWrites = !cmd.hasOption(DISABLE_DURABLE_WRITES);
 
-        commandArgs.cfPerThread = cmd.hasOption(CF_PERF_THREAD);
-
-        if (cmd.hasOption(COLUMN_FAMILY_NAME)) {
-            if(cmd.hasOption(CF_PERF_THREAD)) {
-                throw new IllegalArgumentException("Can not have name and be per thread");
-            }
-            commandArgs.singleCFName = cmd.getOptionValue(COLUMN_FAMILY_NAME);
+        if (cmd.hasOption(COLUMN_FAMILIES_COUNT)) {
+            commandArgs.cfCount = getIntValueOrExit(cmd, COLUMN_FAMILIES_COUNT);
+//            if(cmd.hasOption(CF_PERF_THREAD)) {
+//                throw new IllegalArgumentException("Can not have name and be per thread");
+//            }
+//            commandArgs.singleCFName = cmd.getOptionValue(COLUMN_FAMILIES_COUNT);
         }
 
         Cluster cluster = HFactory.createCluster("StressCluster", cassandraHostConfigurator);
@@ -229,8 +227,8 @@ public class Stress {
 
         if (!reuseKeyspace || ksDef == null) {
             List<ColumnFamilyDefinition> cfDefs = new ArrayList<ColumnFamilyDefinition>();
-            if(commandArgs.cfPerThread) {
-                for (int i = 0; i < commandArgs.threads; i++) {
+            if(commandArgs.cfCount > 0) {
+                for (int i = 0; i < commandArgs.cfCount; i++) {
                     String cfName = commandArgs.getWorkingColumnFamily(commandArgs.getKeysPerThread() * i);
                     ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(
                             commandArgs.workingKeyspace, cfName, ComparatorType.BYTESTYPE);
@@ -288,8 +286,7 @@ public class Stress {
         options.addOption("d", DISABLE_DURABLE_WRITES, false, "Disable durable writes(commit log)");
         options.addOption("kw", KEY_WIDTH, true, "Size of a key");
         options.addOption("rk", REUSE_KEYSPACE, false, "Reuse existing keyspace");
-        options.addOption("cft", CF_PERF_THREAD, false, "Each thread will use own column family");
-        options.addOption("cfn", COLUMN_FAMILY_NAME, true, "Name of column family");
+        options.addOption("cfc", COLUMN_FAMILIES_COUNT, true, "Number of column families");
         options.addOption("kn", KEYSPACE_NAME, true, "Name of column keyspace");
         return options;
     }
