@@ -22,9 +22,12 @@ import org.slf4j.LoggerFactory;
  * @author zznate <nate@riptano.com>
  */
 public class CommandRunner {
-    
+
     private static final Logger log = LoggerFactory.getLogger(CommandRunner.class);
-    
+
+    public static final long SLEEP_MILLIS = 5000;
+    public static final long SLEEP_SECS = TimeUnit.MILLISECONDS.toSeconds(SLEEP_MILLIS);
+
     final Map<CassandraHost, LatencyTracker> latencies;
     CountDownLatch doneSignal;
     private Operation previousOperation;
@@ -58,16 +61,20 @@ public class CommandRunner {
         log.info("Submitted {} tasks", commandArgs.threads);
 
         ListenableFuture<List<Long>> future = Futures.allAsList(futures);
-
+        long previous = 0;
         while(!future.isDone()) {
             long time = System.currentTimeMillis();
             long timeSpentSecs = (time - submitTime) / 1000;
-            long rate = total.get() / (timeSpentSecs != 0 ? timeSpentSecs : 1);
+            long currentTotal = total.get();
 
-            log.info("{} sec: progress {}/{}. Approximate rate: {} recs/sec", new Object[]{timeSpentSecs, total.get(), commandArgs.rowCount, rate});
+            long rate = currentTotal / (timeSpentSecs != 0 ? timeSpentSecs : 1);
+
+            long currentRate = (currentTotal - previous) / SLEEP_SECS;
+            previous = currentTotal;
+            log.info("{} sec: progress {}/{}. Current rate: {} recs/sec, Avg rate: {} recs/sec", new Object[]{timeSpentSecs, currentTotal, commandArgs.rowCount, currentRate, rate});
 
             try {
-                Thread.sleep(5000);
+                Thread.sleep(SLEEP_MILLIS);
             } catch (InterruptedException e) {
                 log.warn("Interrupted while waiting for work to be finished");
             }
