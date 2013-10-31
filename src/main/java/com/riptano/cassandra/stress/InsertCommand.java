@@ -89,7 +89,7 @@ public class InsertCommand extends StressCommand {
     private String[] generateRandom(int colWidth, int count) {
         String columnsContent[] = new String[count];
         for (int i = 0; i < columnsContent.length; i++) {
-            columnsContent[i] = RandomStringUtils.random(colWidth);
+            columnsContent[i] = RandomStringUtils.randomAscii(colWidth);
         }
         return columnsContent;
     }
